@@ -11,7 +11,7 @@ import SwiftUI
 struct PlumbApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
