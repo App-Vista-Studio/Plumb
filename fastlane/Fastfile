@@ -1,0 +1,107 @@
+# Plumb fastlane lanes.
+#
+#   fastlane ios build        Compile a Release build for the simulator (no signing). Quick CI check.
+#   fastlane ios bump         Increment the build number (CURRENT_PROJECT_VERSION).
+#   fastlane ios beta         Archive, sign and upload to TestFlight.
+#   fastlane ios release      Archive, sign and upload a build to App Store Connect (does not submit for review).
+#   fastlane ios screenshots  Capture every screen on the iPhone 17 Pro simulator into fastlane/captures (for review).
+#   fastlane ios store_screenshots  Upload the US App Store screenshots in fastlane/screenshots/en-US (6.9", 1320 x 2868).
+#
+# beta and release need an App Store Connect API key in the environment (fastlane/.env.example).
+# Build products go to ../PlumbTestBuild so Xcode's default DerivedData is never touched.
+
+default_platform(:ios)
+
+PROJECT = "Plumb.xcodeproj"
+SCHEME = "Plumb"
+BUILD_ROOT = File.expand_path("../../PlumbTestBuild", __dir__)
+
+platform :ios do
+  desc "Compile a Release simulator build to check the project builds (no signing, no upload)"
+  lane :build do
+    xcodebuild(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      destination: "generic/platform=iOS Simulator",
+      derivedDataPath: File.join(BUILD_ROOT, "fastlane-dd"),
+      build: true,
+      xcargs: "CODE_SIGNING_ALLOWED=NO"
+    )
+  end
+
+  desc "Increment the build number"
+  lane :bump do
+    increment_build_number(xcodeproj: PROJECT)
+  end
+
+  desc "Archive, sign and upload to TestFlight"
+  lane :beta do
+    api_key = asc_api_key
+    next_build = latest_testflight_build_number(api_key: api_key, initial_build_number: 0) + 1
+    increment_build_number(xcodeproj: PROJECT, build_number: next_build)
+    archive_for_store
+    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
+  end
+
+  desc "Archive, sign and upload a build to App Store Connect (does not submit for review)"
+  lane :release do
+    api_key = asc_api_key
+    archive_for_store
+    upload_to_app_store(
+      api_key: api_key,
+      skip_metadata: true,
+      skip_screenshots: true,
+      submit_for_review: false,
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  desc "Capture every screen on the iPhone 17 Pro simulator (dark and light) into fastlane/captures"
+  lane :screenshots do
+    sh("bash", File.expand_path("capture_screens.sh", __dir__))
+  end
+
+  desc "Upload the US App Store screenshots (fastlane/screenshots/en-US), replacing the ones on App Store Connect"
+  lane :store_screenshots do
+    upload_to_app_store(
+      api_key: asc_api_key,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_app_version_update: true,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  # MARK: helpers
+
+  private_lane :asc_api_key do
+    %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH].each do |name|
+      UI.user_error!("Set #{name} (see fastlane/.env.example)") if ENV[name].to_s.empty?
+    end
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"],
+      in_house: false
+    )
+  end
+
+  private_lane :archive_for_store do
+    build_app(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      derived_data_path: File.join(BUILD_ROOT, "fastlane-dd"),
+      output_directory: File.join(BUILD_ROOT, "fastlane-out"),
+      xcargs: "-allowProvisioningUpdates",
+      export_xcargs: "-allowProvisioningUpdates"
+    )
+  end
+end

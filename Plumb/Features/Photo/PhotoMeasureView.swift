@@ -174,7 +174,7 @@ struct PhotoMeasureView: View {
         }
         .background(PM.Colors.background.ignoresSafeArea())
         .onAppear {
-            if DebugLaunch.isActive, !session.doc.hasPhoto {
+            if DebugLaunch.isActive, !DebugLaunch.is("empty"), !session.doc.hasPhoto {
                 session.doc = .sample
                 session.selected = session.doc.annotations.first?.id
             }
@@ -257,6 +257,7 @@ struct PhotoMeasureView: View {
             .padding(.top, 56 - PM.Board.statusBar)
 
             // Board: photo at y 116, 370 tall; the 44 pt bar ends at y 100.
+            // Full width always; on short screens it gives up height (never width) before anything else.
             Group {
                 if doc.hasPhoto {
                     photo(interactive: true, showTags: true)
@@ -264,6 +265,8 @@ struct PhotoMeasureView: View {
                     emptyPhoto
                 }
             }
+            .frame(maxWidth: .infinity, minHeight: 220, idealHeight: 370, maxHeight: 370)
+            .layoutPriority(1)
             .padding(.top, 16)
 
             referenceCard
@@ -296,31 +299,51 @@ struct PhotoMeasureView: View {
 
     /// No photo yet: choose one or take one.
     private var emptyPhoto: some View {
+        // Drops the icon, then the description, when the area is short; text and buttons never squeeze.
+        ViewThatFits(in: .vertical) {
+            emptyPhotoContent(icon: true, body: true)
+            emptyPhotoContent(icon: false, body: true)
+            emptyPhotoContent(icon: false, body: false)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(PM.Colors.surfaceSunken)
+    }
+
+    private func emptyPhotoContent(icon: Bool, body: Bool) -> some View {
         VStack(spacing: 14) {
-            PMIcon(.camera, size: 28, stroke: 1.7)
-                .foregroundStyle(PM.Colors.accent)
-                .frame(width: 60, height: 60)
-                .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(PM.Colors.iconWell))
-            Text("Measure on a photo").font(.pm(18, .bold)).foregroundStyle(PM.Colors.textPrimary)
-            Text("Add a photo, mark something of known size, then draw lengths that are scaled from it.")
-                .font(.pm(14))
-                .foregroundStyle(PM.Colors.textSecondary)
+            if icon {
+                PMIcon(.camera, size: 28, stroke: 1.7)
+                    .foregroundStyle(PM.Colors.accent)
+                    .frame(width: 60, height: 60)
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(PM.Colors.iconWell))
+            }
+            Text("Measure on a photo")
+                .font(.pm(18, .bold))
+                .foregroundStyle(PM.Colors.textPrimary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 24)
+            if body {
+                Text("Add a photo, mark something of known size, then draw lengths that are scaled from it.")
+                    .font(.pm(14))
+                    .foregroundStyle(PM.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: 10) {
-                PhotosPicker(selection: $pickerItem, matching: .images) { Text("Choose photo") }
-                    .buttonStyle(PMPrimaryButtonStyle(height: 48, fontSize: 15))
+                PhotosPicker(selection: $pickerItem, matching: .images) {
+                    Text("Choose photo").lineLimit(1).minimumScaleFactor(0.85).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PMPrimaryButtonStyle(height: 48, fontSize: 15))
                 if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button("Take photo") { openCamera() }
-                        .buttonStyle(PMSecondaryButtonStyle(height: 48, fontSize: 15, fillWidth: true))
+                    Button { openCamera() } label: {
+                        Text("Take photo").lineLimit(1).minimumScaleFactor(0.85)
+                    }
+                    .buttonStyle(PMSecondaryButtonStyle(height: 48, fontSize: 15, fillWidth: true))
                 }
             }
-            .padding(.horizontal, 24)
+            .frame(maxWidth: 360)
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(390 / 370, contentMode: .fit)
-        .background(PM.Colors.surfaceSunken)
     }
 
     /// The photo with its annotations, fitted into the 390 × 370 board frame at the screen width.
@@ -347,7 +370,6 @@ struct PhotoMeasureView: View {
             .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
             .clipped()
         }
-        .aspectRatio(390 / 370, contentMode: .fit)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(photoSummary)
     }

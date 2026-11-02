@@ -1,0 +1,8 @@
+# App identity. Credentials are never stored here: App Store Connect access uses an API key
+# supplied through environment variables (see fastlane/.env.example).
+
+app_identifier("com.plimb.Plumb")
+team_id("U95S7KFPAT")
+
+# Optional, only needed for actions that fall back to Apple ID login.
+apple_id(ENV["FASTLANE_APPLE_ID"]) if ENV["FASTLANE_APPLE_ID"]

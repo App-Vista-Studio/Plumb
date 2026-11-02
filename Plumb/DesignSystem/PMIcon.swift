@@ -39,6 +39,12 @@ enum PMIconName: String, CaseIterable {
     case minus
     case more            // three dots
     case lockSmall       // lock drawn on 24 grid, the 14 x 10 body variant used in pills
+    case shapes          // square, circle and triangle (Shape Area)
+    case printer
+
+    // Unit Converter categories
+    case unitArea, unitVolume, unitWeight, unitPressure, unitPower, unitForce, unitEnergy
+    case unitTemperature, unitSpeed, unitTime, unitFuel, unitVoltage, unitData
 
     var d: String {
         switch self {
@@ -91,6 +97,21 @@ enum PMIconName: String, CaseIterable {
         case .photoMarkers: return SVG.rect(3, 5, 18, 14, rx: 2) + " M7 15l10-6 " + SVG.circle(7, 15, 1.2) + " " + SVG.circle(17, 9, 1.2)
         case .minus: return "M3 12h18"
         case .more: return SVG.circle(5, 12, 1.6) + " " + SVG.circle(12, 12, 1.6) + " " + SVG.circle(19, 12, 1.6)
+        case .shapes: return "M4 4h7v7H4z " + SVG.circle(17.5, 7.5, 3.5) + " M12 13.5l5 7.5H7z"
+        case .printer: return "M7 9V3h10v6 M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2 M7 14h10v7H7z"
+        case .unitArea: return "M4 4h16v16H4z M4 12l8-8M4 20L20 4M12 20l8-8"
+        case .unitVolume: return "M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3v12c0 1.7-3.1 3-7 3s-7-1.3-7-3z M5 6c0 1.7 3.1 3 7 3s7-1.3 7-3 M5 13c0 1.7 3.1 3 7 3s7-1.3 7-3"
+        case .unitWeight: return SVG.circle(12, 6, 3) + " M7.5 9h9l3 11h-15z"
+        case .unitPressure: return SVG.circle(12, 13, 8) + " M12 13l3.5-3.5 M8 16.5h8 M12 5V2.5M10 2.5h4"
+        case .unitPower: return "M13 2L4.5 13.5h6.5L10 22l8.5-11.5H12z"
+        case .unitForce: return "M4 4v16 M20 12H8 M12 8l-4 4 4 4"
+        case .unitEnergy: return "M12 3c.8 3.3 5 5.4 5 10a5 5 0 0 1-10 0c0-2.4 1.3-4 2.4-5 .1 1.8.9 3 2.1 3.6-.1-3.4-.4-5.9.5-8.6z"
+        case .unitTemperature: return "M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z M12 10v7"
+        case .unitSpeed: return "M4 18a8 8 0 0 1 16 0 M12 18l4.5-4.5 M6.3 12.3l1.1 1.1M12 10v1.5M4 18h2M18 18h2"
+        case .unitTime: return SVG.circle(12, 13, 8) + " M12 9v4l2.5 2.5 M10 2h4M12 2v3"
+        case .unitFuel: return "M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16 M3 21h12 M7 7h4v4H7z M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8l-3-3"
+        case .unitVoltage: return SVG.rect(2.5, 7, 16, 10, rx: 2) + " M21.5 10.5v3 M6.5 12h3M8 10.5v3 M12.5 12h3"
+        case .unitData: return SVG.rect(3, 13, 18, 7, rx: 2) + " M3 15l3-9h12l3 9 M16.5 16.5h.01 M7 16.5h5"
         }
     }
 }

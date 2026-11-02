@@ -556,3 +556,20 @@ struct SheetHeader: View {
         }
     }
 }
+
+/// Safety net for fixed-design screens: on tall phones the content fills the screen exactly as designed
+/// (Spacers still expand); on short phones or large text it scrolls instead of overlapping.
+struct FitOrScroll<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        GeometryReader { g in
+            ScrollView(.vertical) {
+                content()
+                    .frame(maxWidth: .infinity, minHeight: g.size.height, alignment: .top)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
+        }
+    }
+}

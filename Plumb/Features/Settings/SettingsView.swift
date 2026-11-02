@@ -16,7 +16,6 @@ struct SettingsView: View {
     @State private var showInfo = DebugLaunch.is("info")
     @State private var message: PaywallMessage?
     @State private var restoring = false
-    @State private var showSyncInfo = false
 
     private let motion = MotionService.shared
 
@@ -94,9 +93,6 @@ struct SettingsView: View {
 
                 VStack(spacing: 0) {
                     SettingsLink(title: "Calibration", value: calibrationText, divider: true) { router.push(.calibration) }
-                    SettingsLink(title: "iCloud Sync", value: settings.isPro ? "Off" : "Pro", divider: true) {
-                        if settings.isPro { showSyncInfo = true } else { router.push(.paywall) }
-                    }
                     SettingsLink(title: "Restore Purchases", value: restoring ? "Checking\u{2026}" : "", divider: true) { restore() }
                     SettingsLink(title: "Privacy", value: "No data leaves your phone", divider: false) { message = .privacy }
                 }
@@ -117,11 +113,6 @@ struct SettingsView: View {
             Button("OK", role: .cancel) {}
         } message: { m in
             Text(m.body)
-        }
-        .alert("iCloud Sync", isPresented: $showSyncInfo) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("iCloud Sync isn\u{2019}t available in this version yet. Your projects stay on this iPhone; export a PDF to share or keep a copy.")
         }
     }
 

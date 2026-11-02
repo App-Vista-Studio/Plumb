@@ -57,6 +57,7 @@ struct CalculatorsView: View {
                         }
                     }
                 }
+                shapeAreaTile
                 HStack(alignment: .top, spacing: 12) {
                     PMIcon(.info, size: 20, stroke: 1.8)
                         .foregroundStyle(PM.Colors.textSecondary)
@@ -74,6 +75,39 @@ struct CalculatorsView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
+    }
+
+    /// Full-width tile under the grid: opens the Shape Area calculators (free).
+    private var shapeAreaTile: some View {
+        Button { router.push(.shapes) } label: {
+            HStack(spacing: 12) {
+                PMIcon(.shapes, size: 22)
+                    .foregroundStyle(PM.Colors.accent)
+                    .frame(width: 38, height: 38)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(PM.Colors.iconWell))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SHAPE AREA")
+                        .font(.pm(12, .heavy))
+                        .tracking(1)
+                        .foregroundStyle(PM.Colors.textPrimary)
+                    Text("Area and perimeter of \(ShapeKind.allCases.count) shapes")
+                        .font(.pm(12))
+                        .foregroundStyle(PM.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                PMIcon(.chevronRight, size: 16, stroke: 2)
+                    .foregroundStyle(PM.Colors.textTertiary)
+            }
+            .padding(.vertical, 15)
+            .padding(.horizontal, 13)
+            .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+            .pmCard()
+        }
+        .buttonStyle(.pmPress)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Shape area calculators, area and perimeter of \(ShapeKind.allCases.count) shapes")
+        .accessibilityAddTraits(.isButton)
     }
 
     private func select(_ kind: CalcKind) {

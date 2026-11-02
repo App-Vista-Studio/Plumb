@@ -56,9 +56,50 @@ struct CalibrationView: View {
     }
 
     private var content: some View {
-        ZStack(alignment: .bottom) {
-            PM.Colors.background.ignoresSafeArea()
+        GeometryReader { outer in
+            VStack(spacing: 0) {
+                // The scrolling area ends above the pinned disclaimer and action, so they never overlap.
+                // It only scrolls if the content can't fit even with the illustration at its smallest.
+                GeometryReader { g in
+                    FitOrScroll {
+                        steps(height: g.size.height)
+                    }
+                }
 
+                bottomControls
+                    .padding(.horizontal, 20)
+                    // Home-button phones have no bottom inset; keep the button off the screen edge.
+                    .padding(.bottom, outer.safeAreaInsets.bottom == 0 ? 16 : 0)
+            }
+        }
+        .background(PM.Colors.background.ignoresSafeArea())
+        .onAppear { motion.start() }
+        .onDisappear { motion.stop() }
+        .task(id: runID) {
+            guard debugPhase == nil else { return }
+            await run()
+        }
+    }
+
+    /// Heights of the content above and below the illustration, measured so the illustration
+    /// takes whatever is left (board layout on 844 pt phones, scaled down on shorter ones).
+    @State private var upperHeight: CGFloat = 137
+    @State private var lowerHeight: CGFloat = 225
+
+    /// Board illustration slot: 18 pt top padding + 260 pt frame. The art is drawn 24 pt up, so its
+    /// last 24 pt are empty and the slot may shrink to 254 before the art has to scale.
+    private static let boardSlot: CGFloat = 278
+    private static let artExtent: CGFloat = 254
+
+    private func steps(height h: CGFloat) -> some View {
+        // 0 on the shortest phones (iPhone SE), 1 from the board height up: tightens the gaps.
+        let t = min(1, max(0, (h - 510) / 110))
+        let titleGap = 14 + 12 * t
+        let cardGap = 14 + 8 * t
+        let slot = min(Self.boardSlot, max(110, h - upperHeight - lowerHeight - 8))
+        let k = min(1, slot / Self.artExtent)
+
+        return VStack(spacing: 0) {
             VStack(spacing: 0) {
                 ZStack {
                     Text("STEP \(step) OF 3")
@@ -90,14 +131,19 @@ struct CalibrationView: View {
                     .foregroundStyle(PM.Colors.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
-                    .padding(.top, 26)
+                    .padding(.top, titleGap)
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { upperHeight = $0 }
 
-                CalibrationIllustration(phase: phase)
-                    .frame(width: 390, height: 260)
-                    .offset(y: -24)
-                    .padding(.top, 18)
-                    .frame(maxWidth: .infinity)
+            // Board: 390 x 260 art, 18 pt below the title, drawn 24 pt up. Scaled from the top centre.
+            CalibrationIllustration(phase: phase)
+                .frame(width: 390, height: 260)
+                .scaleEffect(k, anchor: .top)
+                .offset(y: (18 - 24) * k)
+                .frame(height: slot, alignment: .top)
+                .frame(maxWidth: .infinity)
 
+            VStack(spacing: 0) {
                 // One copy block, updated in place (no crossfade between steps, which drew two steps'
                 // text over each other). Hidden copies of every step reserve the tallest height so the
                 // stability card doesn't move when the copy changes length.
@@ -116,52 +162,47 @@ struct CalibrationView: View {
 
                 stabilityCard
                     .padding(.horizontal, 20)
-                    .padding(.top, 22)
-
-                Spacer(minLength: 0)
+                    .padding(.top, cardGap)
             }
-
-            VStack(spacing: 8) {
-                Text("Calibration adjusts the app's reference position. It can't make the sensors more accurate than your iPhone allows.")
-                    .font(.pm(12))
-                    .lineSpacing(12 * 0.45 - 2.4)
-                    .foregroundStyle(PM.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 6)
-
-                Group {
-                    switch phase {
-                    case .done:
-                        Button("Done") { dismiss() }
-                            .buttonStyle(.pmPrimary)
-                    case .failed:
-                        Button("Try again") { restart() }
-                            .buttonStyle(.pmPrimary)
-                    case .turn where showManualTurn:
-                        Button("I’ve turned it") { manualTurn = true }
-                            .buttonStyle(PMSecondaryButtonStyle(fillWidth: true))
-                    default:
-                        Text(waitingText)
-                            .font(.pm(17, .bold))
-                            .foregroundStyle(PM.Colors.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(Capsule().fill(PM.Colors.surfaceRaised))
-                            .overlay(Capsule().strokeBorder(PM.Colors.borderStrong, lineWidth: 1))
-                            .accessibilityAddTraits(.isStaticText)
-                    }
-                }
-                // Swap the action instantly: a crossfade drew "Waiting for a stable surface" under "Calibrating…".
-                .transaction(value: phase) { $0.animation = nil }
-            }
-            .padding(.horizontal, 20)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { lowerHeight = $0 }
         }
-        .onAppear { motion.start() }
-        .onDisappear { motion.stop() }
-        .task(id: runID) {
-            guard debugPhase == nil else { return }
-            await run()
+    }
+
+    private var bottomControls: some View {
+        VStack(spacing: 8) {
+            Text("Calibration adjusts the app's reference position. It can't make the sensors more accurate than your iPhone allows.")
+                .font(.pm(12))
+                .lineSpacing(12 * 0.45 - 2.4)
+                .foregroundStyle(PM.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
+
+            Group {
+                switch phase {
+                case .done:
+                    Button("Done") { dismiss() }
+                        .buttonStyle(.pmPrimary)
+                case .failed:
+                    Button("Try again") { restart() }
+                        .buttonStyle(.pmPrimary)
+                case .turn where showManualTurn:
+                    Button("I’ve turned it") { manualTurn = true }
+                        .buttonStyle(PMSecondaryButtonStyle(fillWidth: true))
+                default:
+                    Text(waitingText)
+                        .font(.pm(17, .bold))
+                        .foregroundStyle(PM.Colors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(Capsule().fill(PM.Colors.surfaceRaised))
+                        .overlay(Capsule().strokeBorder(PM.Colors.borderStrong, lineWidth: 1))
+                        .accessibilityAddTraits(.isStaticText)
+                }
+            }
+            // Swap the action instantly: a crossfade drew "Waiting for a stable surface" under "Calibrating…".
+            .transaction(value: phase) { $0.animation = nil }
         }
     }
 

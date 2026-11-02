@@ -27,6 +27,25 @@ struct ARWorldSegment: Identifiable, Equatable {
     }
 }
 
+/// Averages consecutive raycast hits that agree to within a few millimetres, so hand tremor and
+/// per-frame raycast noise don't end up in a placed point. A hit that jumps further than `radius`
+/// from the recent cluster (the reticle moved to a new spot) restarts the average, so a moving
+/// reticle is never dragged behind by old samples.
+struct ARHitStabiliser {
+    static let radius: Float = 0.006
+    static let capacity = 10
+    private(set) var cluster: [simd_float3] = []
+
+    mutating func add(_ p: simd_float3) -> simd_float3 {
+        cluster.removeAll { simd_distance($0, p) > Self.radius }
+        cluster.append(p)
+        if cluster.count > Self.capacity { cluster.removeFirst(cluster.count - Self.capacity) }
+        return cluster.reduce(simd_float3.zero, +) / Float(cluster.count)
+    }
+
+    mutating func reset() { cluster.removeAll() }
+}
+
 /// Where a segment is on screen this frame. nil points are behind the camera or off the view.
 struct ARScreenSegment: Identifiable {
     var id: UUID
@@ -56,6 +75,7 @@ final class ARMeasureSession: NSObject, ARSessionDelegate, ARSCNViewDelegate {
 
     private weak var view: ARSCNView?
     private var hit: simd_float3?
+    private var stabiliser = ARHitStabiliser()
     private var isRunning = false
 
     // MARK: Lifecycle
@@ -104,6 +124,7 @@ final class ARMeasureSession: NSObject, ARSessionDelegate, ARSCNViewDelegate {
         segments.removeAll()
         screenSegments.removeAll()
         liveMetres = nil
+        stabiliser.reset()
         availability = .checking
         if let view {
             let config = ARWorldTrackingConfiguration()
@@ -178,13 +199,14 @@ final class ARMeasureSession: NSObject, ARSessionDelegate, ARSCNViewDelegate {
         }
         if let r = result {
             let t = r.worldTransform.columns.3
-            let p = simd_float3(t.x, t.y, t.z)
+            let p = stabiliser.add(simd_float3(t.x, t.y, t.z))
             hit = p
             reticle = project(p, in: view, bounds: bounds) ?? centre
             hasSurface = true
         } else {
             hit = nil
             reticle = nil
+            stabiliser.reset()
         }
 
         if let open = openSegment, let hit {

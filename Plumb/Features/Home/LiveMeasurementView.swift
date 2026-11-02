@@ -7,14 +7,65 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct LiveMeasurementView: View {
-    /// Instrument scale in live mode (board: translateY(12px) scale(1.36)).
-    static let dialScale: CGFloat = 1.36
+    /// Instrument scale in live mode on the board (translateY(12px) scale(1.36)).
+    static let boardDialScale: CGFloat = 1.36
+
+    /// Instrument scale in live mode for the current window (smaller only if the board scale cannot fit).
+    /// Home's zoom overlay animates to this, so it must match the live layout.
+    static var dialScale: CGFloat {
+        let m = windowMetrics
+        return layout(width: m.width, height: m.height, safeTop: m.safeTop, safeBottom: m.safeBottom).scale
+    }
 
     /// Dial centre in screen coordinates. Board: 236 pt dial at top 214, +12 translate, so centre y 344 on the 844 frame.
+    /// On short phones the dial moves up so the readout and bottom row fit beneath it.
     static func dialCentre(width: CGFloat, safeTop: CGFloat) -> CGPoint {
-        CGPoint(x: width / 2, y: safeTop + (214 + 118 + 12 - PM.Board.statusBar))
+        let m = windowMetrics
+        return layout(width: width, height: m.height, safeTop: safeTop, safeBottom: m.safeBottom).centre
+    }
+
+    /// Vertical layout of the live screen in full-screen coordinates.
+    struct LiveLayout {
+        var centre: CGPoint
+        var scale: CGFloat
+        /// Top of the readout block.
+        var readoutTop: CGFloat
+        /// Space under the Pitch / Roll / Lock row.
+        var bottomPadding: CGFloat
+    }
+
+    /// Board geometry on the 844 frame, kept on any phone where it fits; otherwise the dial moves up (and,
+    /// if needed, shrinks) so the readout ends 16 pt above the bottom row.
+    static func layout(width: CGFloat, height: CGFloat, safeTop: CGFloat, safeBottom: CGFloat) -> LiveLayout {
+        let half = HomeLevelDial.size / 2
+        let readoutGap: CGFloat = (522 - 214 - 118 - 12) - half * boardDialScale   // dial edge to readout, 17.5
+        let readoutHeight: CGFloat = 140                                           // 76 + 10 + 16 + 10 + 26, rounded up
+        let topBarBottom = safeTop + (58 - PM.Board.statusBar) + 44
+        let bottomPadding = safeBottom > 0 ? safeBottom : 20
+        let readoutLimit = height - bottomPadding - 54 - 16
+
+        let fitScale = (readoutLimit - readoutHeight - readoutGap - (topBarBottom + 12)) / HomeLevelDial.size
+        let scale = max(0.6, min(boardDialScale, fitScale))
+        let boardCentreY = safeTop + (214 + half + 12 - PM.Board.statusBar)
+        let centreY = min(boardCentreY, readoutLimit - readoutHeight - readoutGap - half * scale)
+        return LiveLayout(centre: CGPoint(x: width / 2, y: centreY),
+                          scale: scale,
+                          readoutTop: centreY + half * scale + readoutGap,
+                          bottomPadding: bottomPadding)
+    }
+
+    /// Key window size and insets, for callers (Home's zoom overlay) that only know the width and top inset.
+    private static var windowMetrics: (width: CGFloat, height: CGFloat, safeTop: CGFloat, safeBottom: CGFloat) {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let windows = scenes.flatMap(\.windows)
+        guard let window = windows.first(where: \.isKeyWindow) ?? windows.first else {
+            return (390, 844, PM.Board.statusBar, PM.Board.homeIndicator)
+        }
+        let i = window.safeAreaInsets
+        return (window.bounds.width, window.bounds.height, i.top, i.bottom)
     }
 
     @Environment(Router.self) private var router
@@ -49,13 +100,13 @@ struct LiveMeasurementView: View {
             let top = safe.safeAreaInsets.top
             let bottom = safe.safeAreaInsets.bottom
             GeometryReader { geo in
-            let centre = Self.dialCentre(width: geo.size.width, safeTop: top)
+            let layout = Self.layout(width: geo.size.width, height: geo.size.height, safeTop: top, safeBottom: bottom)
             ZStack(alignment: .top) {
                 Color.clear
 
                 HomeLevelDial(bubbleOffset: reading.bubbleOffset, drift: !motion.isAvailable && locked == nil)
-                    .scaleEffect(Self.dialScale)
-                    .position(centre)
+                    .scaleEffect(layout.scale)
+                    .position(layout.centre)
                     .accessibilityElement()
                     .accessibilityLabel("Live level instrument")
                     .accessibilityValue(accessibilityValue)
@@ -65,11 +116,11 @@ struct LiveMeasurementView: View {
                         .padding(.top, top + 58 - PM.Board.statusBar)
 
                     readout
-                        .padding(.top, top + 522 - PM.Board.statusBar)
+                        .padding(.top, layout.readoutTop)
 
                     bottomRow
                         .frame(maxHeight: .infinity, alignment: .bottom)
-                        .padding(.bottom, bottom > 0 ? bottom : 34)
+                        .padding(.bottom, layout.bottomPadding)
                 }
                 .opacity(chromeVisible ? 1 : 0)
                 .offset(y: chromeVisible || reduceMotion ? 0 : 10)

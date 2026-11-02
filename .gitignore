@@ -9,3 +9,13 @@ build/
 
 # Claude Code local state
 .claude/
+
+# fastlane
+fastlane/.env
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/captures/
+fastlane/test_output/
+*.ipa
+*.dSYM.zip
+*.p8

@@ -21,6 +21,8 @@ struct SlopeView: View {
     @State private var inverseText = ""
     @State private var inverseError: String?
     @State private var toast: String?
+    /// Last height measured with no keyboard up, so the layout doesn't shrink while typing.
+    @State private var keyboardFreeHeight: CGFloat = 0
 
     private enum Field { case rise, run }
 
@@ -39,25 +41,39 @@ struct SlopeView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
-            header
-            SlopeDiagram(degrees: degrees, riseText: displayInput(riseText), runText: displayInput(runText),
-                         degText: degText, unit: unitLabel)
-            HStack(alignment: .top, spacing: 12) {
-                inputCard(label: "RISE", text: $riseText, field: .rise, step: 1)
-                inputCard(label: "RUN", text: $runText, field: .run, step: 10)
+        GeometryReader { g in
+            let fit = Self.fit(forHeight: max(g.size.height, keyboardFreeHeight))
+            VStack(spacing: Self.lerp(10, 16, fit)) {
+                header
+                    .padding(.horizontal, 20)
+                // Safety net: on short phones, large text or with the keyboard up the cards scroll
+                // instead of pushing the top bar into the status bar or the button off the screen.
+                FitOrScroll {
+                    VStack(spacing: Self.lerp(10, 16, fit)) {
+                        SlopeDiagram(degrees: degrees, riseText: displayInput(riseText), runText: displayInput(runText),
+                                     degText: degText, unit: unitLabel, height: Self.lerp(136, 176, fit))
+                        HStack(alignment: .top, spacing: 12) {
+                            inputCard(label: "RISE", text: $riseText, field: .rise, step: 1, fit: fit)
+                            inputCard(label: "RUN", text: $runText, field: .run, step: 10, fit: fit)
+                        }
+                        result(fit: fit)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 20)
+                }
+                Button("Save to project", action: save)
+                    .buttonStyle(.pmPrimary)
+                    .disabled(!ok)
+                    .opacity(ok ? 1 : 0.5)
+                    .padding(.horizontal, 20)
             }
-            result
-            Spacer(minLength: 0)
-            Button("Save to project", action: save)
-                .buttonStyle(.pmPrimary)
-                .disabled(!ok)
-                .opacity(ok ? 1 : 0.5)
+            .padding(.top, 56 - PM.Board.statusBar)
+            // The board's button sits on the home indicator inset; phones without one get a margin.
+            .padding(.bottom, g.safeAreaInsets.bottom > 0 ? 0 : 16)
         }
-        .padding(.top, 56 - PM.Board.statusBar)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 0)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+            if focused == nil && inverse == nil { keyboardFreeHeight = h }
+        }
         .background(PM.Colors.background.ignoresSafeArea())
         .overlay(alignment: .top) {
             if let toast {
@@ -90,6 +106,19 @@ struct SlopeView: View {
         }
     }
 
+    // MARK: Fit
+
+    /// 0 on the shortest supported phone (iPhone SE, 647 pt between the safe areas), 1 from the
+    /// 844 pt board size up (763 pt there; 755 so every 844 pt+ phone gets the board layout).
+    private static func fit(forHeight h: CGFloat) -> CGFloat {
+        min(1, max(0, (h - 647) / (755 - 647)))
+    }
+
+    /// Compact value at `fit` 0, board value at `fit` 1, rounded to whole points.
+    private static func lerp(_ compact: CGFloat, _ board: CGFloat, _ fit: CGFloat) -> CGFloat {
+        (compact + (board - compact) * fit).rounded()
+    }
+
     // MARK: Sections
 
     private var header: some View {
@@ -106,7 +135,7 @@ struct SlopeView: View {
         }
     }
 
-    private func inputCard(label: String, text: Binding<String>, field: Field, step: Double) -> some View {
+    private func inputCard(label: String, text: Binding<String>, field: Field, step: Double, fit: CGFloat) -> some View {
         let value = SlopeMath.parse(text.wrappedValue)
         let invalid = (value ?? 0) <= 0
         return VStack(alignment: .leading, spacing: 8) {
@@ -136,7 +165,7 @@ struct SlopeView: View {
                 .font(.pm(12, .semibold))
                 .foregroundStyle(invalid ? PM.Colors.warning : PM.Colors.calibrating)
         }
-        .padding(16)
+        .padding(Self.lerp(12, 16, fit))
         .frame(maxWidth: .infinity, alignment: .leading)
         .pmCard(border: invalid ? PM.Colors.warning.opacity(0.6) : PM.Colors.border)
     }
@@ -157,8 +186,8 @@ struct SlopeView: View {
         .buttonRepeatBehavior(.enabled)
     }
 
-    private var result: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func result(fit: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: Self.lerp(8, 12, fit)) {
             HStack {
                 Text("RESULT").pmCaptionStyle(tracking: 1.2)
                 Spacer()
@@ -182,7 +211,7 @@ struct SlopeView: View {
             .monospacedDigit()
             .foregroundStyle(PM.Colors.textSecondary)
         }
-        .padding(16)
+        .padding(Self.lerp(12, 16, fit))
         .pmCard(fill: PM.Colors.surfaceSunken)
     }
 
@@ -257,14 +286,14 @@ private struct SlopeDiagram: View {
     var runText: String
     var degText: String
     var unit: String
-
-    private let height: CGFloat = 176
+    /// 176 on the board; shorter phones get a shorter card (at least 136 keeps the labels apart).
+    var height: CGFloat = 176
 
     var body: some View {
         let vis = min(40, degrees * 4)
         let rad = vis * .pi / 180
-        // Keep the triangle clear of the top captions at steep angles.
-        let len: CGFloat = rad > 0 ? min(300, 92 / sin(rad)) : 300
+        // Keep the triangle clear of the top captions at steep angles (92 pt of rise on the 176 pt board).
+        let len: CGFloat = rad > 0 ? min(300, max(0, height - 84) / sin(rad)) : 300
         let h = sin(rad) * len
         let w = cos(rad) * len
         let baseY = height - 40

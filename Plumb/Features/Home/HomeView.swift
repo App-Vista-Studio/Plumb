@@ -282,7 +282,7 @@ struct HomeView: View {
                 GridRow {
                     ForEach(list[(row * 3)..<(row * 3 + 3)]) { t in
                         Button { router.push(ProGate.route(t.route, pro: t.pro)) } label: {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .center, spacing: 8) {
                                 PMIcon(t.icon, size: 20)
                                     .foregroundStyle(PM.Colors.accent)
                                     .frame(width: 34, height: 34)
@@ -292,10 +292,11 @@ struct HomeView: View {
                                     .foregroundStyle(PM.Colors.textPrimary)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.8)
-                                BoardWrapText(t.desc, size: 12, lineHeight: 1.3, color: PM.Colors.textSecondary)
+                                BoardWrapText(t.desc, size: 12, lineHeight: 1.3, alignment: .center, color: PM.Colors.textSecondary)
                             }
+                            .multilineTextAlignment(.center)
                             .padding(12)
-                            .frame(maxWidth: .infinity, minHeight: 96, maxHeight: .infinity, alignment: .topLeading)
+                            .frame(maxWidth: .infinity, minHeight: 96, maxHeight: .infinity, alignment: .top)
                             .pmCard(radius: 20)
                         }
                         .buttonStyle(.pmPress)
@@ -372,36 +373,38 @@ struct HomeView: View {
 
     private func quickToolTile(_ t: QuickTool) -> some View {
         Button { router.push(ProGate.route(t.route, pro: t.pro)) } label: {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .center, spacing: 12) {
                 PMIcon(t.icon, size: 22)
                     .foregroundStyle(PM.Colors.accent)
                     .frame(width: 38, height: 38)
                     .background(RoundedRectangle(cornerRadius: PM.Radius.iconWell, style: .continuous).fill(PM.Colors.iconWell))
-                VStack(alignment: .leading, spacing: 2) {
+                    .overlay(alignment: .topTrailing) {
+                        if t.pro {
+                            Text("PRO")
+                                .font(.pm(9, .heavy))
+                                .tracking(0.4)
+                                .foregroundStyle(PM.Colors.textSecondary)
+                                .padding(.horizontal, 5)
+                                .frame(height: 16)
+                                .background(Capsule().fill(PM.Colors.surface))
+                                .overlay(Capsule().strokeBorder(PM.Colors.badgeOutline, lineWidth: 1))
+                                .fixedSize()
+                                .offset(x: 22, y: -6)
+                        }
+                    }
+                VStack(alignment: .center, spacing: 2) {
                     Text(t.id)
                         .font(.pm(12, .bold))
                         .foregroundStyle(PM.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    BoardWrapText(t.desc, size: 12, lineHeight: 1.3, color: PM.Colors.textSecondary)
+                    BoardWrapText(t.desc, size: 12, lineHeight: 1.3, alignment: .center, color: PM.Colors.textSecondary)
                 }
+                .multilineTextAlignment(.center)
             }
             .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 120, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 120, maxHeight: .infinity, alignment: .top)
             .pmCard()
-            .overlay(alignment: .topTrailing) {
-                if t.pro {
-                    Text("PRO")
-                        .font(.pm(12, .heavy))
-                        .tracking(0.6)
-                        .foregroundStyle(PM.Colors.textSecondary)
-                        .padding(.horizontal, 6)
-                        .frame(height: 20)
-                        .overlay(Capsule().strokeBorder(PM.Colors.badgeOutline, lineWidth: 1))
-                        .padding(.top, 12)
-                        .padding(.trailing, 12)
-                }
-            }
         }
         .buttonStyle(.pmPress)
         .accessibilityLabel("\(t.id.capitalized): \(t.desc)\(t.pro ? ", Pro" : "")")

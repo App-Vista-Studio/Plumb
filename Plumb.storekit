@@ -1,0 +1,74 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "29.99",
+      "familyShareable" : false,
+      "internalID" : "6F1A0B10-0001-4000-8000-000000000001",
+      "localizations" : [
+        {
+          "description" : "Unlock every Plumb tool with a one-time purchase.",
+          "displayName" : "Plumb Pro Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.kinwild.plimb.pro.lifetime",
+      "referenceName" : "Pro Lifetime (local test)",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_AU",
+    "_storefront" : "AUS",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "6F1A0B10-0002-4000-8000-000000000002",
+      "localizations" : [
+
+      ],
+      "name" : "Plumb Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6F1A0B10-0003-4000-8000-000000000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlock every Plumb tool, billed yearly.",
+              "displayName" : "Plumb Pro Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.kinwild.plimb.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Annual (local test)",
+          "subscriptionGroupID" : "6F1A0B10-0002-4000-8000-000000000002",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

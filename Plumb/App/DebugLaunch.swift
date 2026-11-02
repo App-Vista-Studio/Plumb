@@ -6,6 +6,8 @@
 //    -screen <name>   open a tab or pushed route (home, tools, projects, history, level, calibration,
 //                     surface, angle, protractor, compass, ruler, ar, room, photo, slope, calculators,
 //                     converter, settings, paywall, report, project, live, onboarding,
+//                     shapes, shape.<kind> (e.g. shape.square),
+//                     convert.<category> (e.g. convert.length, convert.temperature),
 //                     unavailable.<kind>)
 //    -state <name>    board state for the screen to show (each screen reads DebugLaunch.state)
 //    -appearance light|dark   force appearance (defaults to dark when -screen is given)
@@ -68,12 +70,19 @@ enum DebugLaunch {
         case "slope": router.path = [.slope]
         case "calculators": router.path = [.calculators]
         case "converter": router.path = [.converter]
+        case "shapes": router.path = [.shapes]
         case "settings": router.path = [.settings]
         case "paywall": router.path = [.paywall]
         case "report": router.path = [.report(projectID: firstProject)]
         case "project": router.path = [.project(projectID: firstProject)]
         default:
-            if screen.hasPrefix("unavailable."),
+            if screen.hasPrefix("convert."),
+               let category = UnitCategory(rawValue: String(screen.dropFirst("convert.".count))) {
+                router.path = [.converter, .convert(category)]
+            } else if screen.hasPrefix("shape."),
+               let kind = ShapeKind(rawValue: String(screen.dropFirst("shape.".count))) {
+                router.path = [.shape(kind)]
+            } else if screen.hasPrefix("unavailable."),
                let kind = UnavailableKind(rawValue: String(screen.dropFirst("unavailable.".count))) {
                 router.path = [.unavailable(kind)]
             }

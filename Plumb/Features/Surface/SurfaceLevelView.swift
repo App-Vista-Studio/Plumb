@@ -24,77 +24,90 @@ struct SurfaceLevelView: View {
         let worst = max(abs(reading.pitch), abs(reading.roll))
         let isLevel = worst <= settings.perfectTolerance
 
-        ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
-                PMTopBar(title: "Surface Level") {
-                    IconCircleButton(icon: .calibrate, label: "Calibrate") { router.push(.calibration) }
-                }
+        GeometryReader { geo in
+            // Home-button phones have no bottom inset: keep the bar off the screen edge.
+            let barPad: CGFloat = geo.safeAreaInsets.bottom > 0 ? 0 : 12
+            let plane = planeHeight(height: geo.size.height, barPad: barPad)
 
-                PMSegmented(options: [(Mode.horizontal, "HORIZONTAL"), (Mode.vertical, "VERTICAL")],
-                            selection: $mode)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-
-                Group {
-                    if let locked {
-                        ToolChromeLockedPill(time: locked.at)
-                    } else {
-                        LivePill(text: "Sensor · Device motion")
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    PMTopBar(title: "Surface Level") {
+                        IconCircleButton(icon: .calibrate, label: "Calibrate") { router.push(.calibration) }
                     }
-                }
-                .frame(height: 26)
-                .padding(.top, 14)
 
-                ZStack {
-                    SurfacePlane(mode: mode, pitch: reading.pitch, roll: reading.roll)
-                    SurfaceStatusPill(isLevel: isLevel, text: statusText(isLevel: isLevel, worst: worst))
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 300)
-                .padding(.top, 10)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(statusText(isLevel: isLevel, worst: worst))
+                    FitOrScroll {
+                        VStack(spacing: 0) {
+                            PMSegmented(options: [(Mode.horizontal, "HORIZONTAL"), (Mode.vertical, "VERTICAL")],
+                                        selection: $mode)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 16 * plane.gapScale)
 
-                HStack(spacing: 10) {
-                    SurfaceAxisCard(label: "PITCH", value: formatSignedDegrees(reading.pitch))
-                    SurfaceAxisCard(label: "ROLL", value: formatSignedDegrees(reading.roll))
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
+                            Group {
+                                if let locked {
+                                    ToolChromeLockedPill(time: locked.at)
+                                } else {
+                                    LivePill(text: "Sensor · Device motion")
+                                }
+                            }
+                            .frame(height: 26)
+                            .padding(.top, 14 * plane.gapScale)
 
-                Text(mode == .horizontal ? "Lay your iPhone flat on the surface." : "Hold the long edge of your iPhone against the wall.")
-                    .font(.pm(13))
-                    .foregroundStyle(PM.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                            ZStack {
+                                SurfacePlane(mode: mode, pitch: reading.pitch, roll: reading.roll)
+                                    .scaleEffect(plane.height / 300)
+                                SurfaceStatusPill(isLevel: isLevel, text: statusText(isLevel: isLevel, worst: worst))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: plane.height)
+                            .padding(.top, 10 * plane.gapScale)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(statusText(isLevel: isLevel, worst: worst))
+
+                            HStack(spacing: 10) {
+                                SurfaceAxisCard(label: "PITCH", value: formatSignedDegrees(reading.pitch))
+                                SurfaceAxisCard(label: "ROLL", value: formatSignedDegrees(reading.roll))
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10 * plane.gapScale)
+
+                            Text(mode == .horizontal ? "Lay your iPhone flat on the surface." : "Hold the long edge of your iPhone against the wall.")
+                                .font(.pm(13))
+                                .foregroundStyle(PM.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 10 * plane.gapScale)
+
+                            if locked != nil {
+                                ToolChromeLockedActions(shareText: shareText(reading), onSave: save)
+                                    .padding(.top, 14 * plane.gapScale)
+                            }
+
+                            Spacer(minLength: 0)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        ToolChromeLockButton(locked: locked != nil, lockLabel: "Lock Reading", action: toggleLock)
+                        ToolChromeInfoButton { withAnimation(PM.Motion.normal) { showInfo.toggle() } }
+                    }
+                    .padding(.horizontal, 20)
                     .padding(.top, 10)
-
-                if locked != nil {
-                    ToolChromeLockedActions(shareText: shareText(reading), onSave: save)
-                        .padding(.top, 14)
+                    .padding(.bottom, barPad)
                 }
 
-                Spacer(minLength: 0)
+                if showInfo {
+                    ToolChromeInfoPanel(rows: [
+                        ("Sensor", "Device motion"),
+                        ("Reference", "Gravity"),
+                        ("Stability", "\(Int((motion.stability * 100).rounded()))%"),
+                        ("Calibration", motion.calibratedAt == nil ? "Factory" : "Custom zero"),
+                        ("Display precision", "0.1°"),
+                    ])
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 66 + barPad)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
-
-            if showInfo {
-                ToolChromeInfoPanel(rows: [
-                    ("Sensor", "Device motion"),
-                    ("Reference", "Gravity"),
-                    ("Stability", "\(Int((motion.stability * 100).rounded()))%"),
-                    ("Calibration", motion.calibratedAt == nil ? "Factory" : "Custom zero"),
-                    ("Display precision", "0.1°"),
-                ])
-                .padding(.horizontal, 12)
-                .padding(.bottom, 66)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
-            HStack(spacing: 10) {
-                ToolChromeLockButton(locked: locked != nil, lockLabel: "Lock Reading", action: toggleLock)
-                ToolChromeInfoButton { withAnimation(PM.Motion.normal) { showInfo.toggle() } }
-            }
-            .padding(.horizontal, 20)
         }
         .background(PM.Colors.background.ignoresSafeArea())
         .overlay { if locked != nil { ToolChromeLockedFrame() } }
@@ -102,6 +115,19 @@ struct SurfaceLevelView: View {
         .onAppear { motion.start() }
         .onDisappear { motion.stop() }
         .onChange(of: mode) { _, _ in locked = nil }
+    }
+
+    // MARK: Layout
+
+    /// Plane area height: 300 as drawn when it fits, otherwise what is left above the bottom bar on short
+    /// phones (with tighter gaps), so the hint and locked actions never sit under the Lock button.
+    private func planeHeight(height: CGFloat, barPad: CGFloat) -> (height: CGFloat, gapScale: CGFloat) {
+        // Top bar 55; bar 10 + 54. Segmented 48, pill 26, cards 94, hint 36 (two lines), locked actions 44.
+        let column = height - 55 - 64 - barPad
+        let fixed: CGFloat = 48 + 26 + 94 + 36 + (locked != nil ? 44 : 0)
+        let gaps: CGFloat = 16 + 14 + 10 + 10 + 10 + (locked != nil ? 14 : 0)
+        let gapScale: CGFloat = column - fixed - gaps >= 300 ? 1 : 0.6
+        return (min(300, max(170, column - fixed - gaps * gapScale)), gapScale)
     }
 
     // MARK: Values

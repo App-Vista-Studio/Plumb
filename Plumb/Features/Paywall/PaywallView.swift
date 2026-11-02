@@ -19,7 +19,7 @@ struct PaywallView: View {
     @State private var message: PaywallMessage?
 
     private let benefits = ["AR Measure", "Room Measure", "Photo Measure", "Projects", "PDF Reports",
-                            "Advanced Calculators", "Measurement History", "iCloud Sync"]
+                            "Advanced Calculators", "Measurement History"]
 
     var body: some View {
         GeometryReader { geo in

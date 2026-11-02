@@ -3,7 +3,8 @@
 //  Plumb
 //
 //  Four onboarding screens (Onboarding board). Positions are the board's, measured from the
-//  top of the 390 x 844 frame; the controls stay anchored 40 pt above the bottom edge.
+//  top of the 390 x 844 frame; the controls stay anchored 40 pt above the bottom edge. On shorter
+//  phones the art and gaps shrink so the text always ends above the controls.
 //
 
 import SwiftUI
@@ -13,6 +14,8 @@ struct OnboardingView: View {
 
     @Environment(Router.self) private var router
     @State private var page = min(3, max(0, Int(DebugLaunch.state ?? "") ?? 0))
+    /// Height of the bottom controls (dots, button, and the last page's note); pages end above them.
+    @State private var controlsHeight: CGFloat = 78
 
     private let pages: [OnboardingPage] = [
         .init(title: "Measure Anything.", body: "A live level, angle finder, ruler and compass, driven by your iPhone’s real sensors.", art: .level),
@@ -23,11 +26,14 @@ struct OnboardingView: View {
 
     private var isLast: Bool { page == pages.count - 1 }
 
+    private static let controlsBottom: CGFloat = 35
+
     var body: some View {
         ZStack(alignment: .top) {
             TabView(selection: $page) {
                 ForEach(pages.indices, id: \.self) { i in
-                    OnboardingPageView(page: pages[i], isActive: page == i)
+                    OnboardingPageView(page: pages[i], isActive: page == i,
+                                       bottomInset: Self.controlsBottom + controlsHeight)
                         .tag(i)
                 }
             }
@@ -53,8 +59,9 @@ struct OnboardingView: View {
             .ignoresSafeArea()
 
             controls
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { controlsHeight = $0 }
                 .padding(.horizontal, 21) // board: 20 inside the 1 pt phone border
-                .padding(.bottom, 35)
+                .padding(.bottom, Self.controlsBottom)
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .ignoresSafeArea()
         }
@@ -125,34 +132,60 @@ private struct OnboardingPage {
 private struct OnboardingPageView: View {
     var page: OnboardingPage
     var isActive: Bool
+    /// Space taken by the pinned controls, from the bottom of the frame.
+    var bottomInset: CGFloat
+
+    @State private var textHeight: CGFloat = 130
+
+    /// Board: art 300 pt square at y 150, text at y 500 (+1.5 baseline compensation).
+    private static let art: CGFloat = 300
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Color.clear
+        GeometryReader { g in
+            let h = g.size.height
+            // 0 on the shortest phones (667 pt, iPhone SE), 1 from the 844 pt board up.
+            let t = min(1, max(0, (h - 667) / (844 - 667)))
+            let artTop = 106 + 44 * t // stays below the Skip button (y 57.5...101.5)
+            let gap = 24 + 26 * t // board: 50 below the art
+            let room = h - bottomInset - 16 - artTop - gap - textHeight
+            let k = min(1, max(0.5, room / Self.art))
 
-            Group {
-                switch page.art {
-                case .level: OnboardingLevelArt()
-                case .angle: OnboardingAngleArt()
-                case .space: OnboardingSpaceArt()
-                case .tools: OnboardingToolsArt()
+            // Fits without scrolling on every iPhone; scrolls only if the text can't fit at all.
+            FitOrScroll {
+                VStack(alignment: .leading, spacing: 0) {
+                    Group {
+                        switch page.art {
+                        case .level: OnboardingLevelArt()
+                        case .angle: OnboardingAngleArt()
+                        case .space: OnboardingSpaceArt()
+                        case .tools: OnboardingToolsArt()
+                        }
+                    }
+                    .frame(width: Self.art, height: Self.art, alignment: .topLeading)
+                    .scaleEffect(k, anchor: .topLeading)
+                    .frame(width: Self.art * k, height: Self.art * k, alignment: .topLeading)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, artTop)
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(page.title)
+                            .font(.pm(34, .bold)).tracking(-0.8)
+                            .foregroundStyle(PM.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        BoardWrapText(page.body, size: 17, lineHeight: 1.45, color: PM.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 21)
+                    .padding(.top, 1.5) // CoreText vs WebKit baseline
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { textHeight = $0 }
+                    .padding(.top, gap)
+                    .accessibilityElement(children: .combine)
                 }
+                // Content ends above the pinned dots and button.
+                .padding(.bottom, bottomInset + 16)
             }
-            .frame(width: 300, height: 300, alignment: .topLeading)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 150)
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text(page.title)
-                    .font(.pm(34, .bold)).tracking(-0.8)
-                    .foregroundStyle(PM.Colors.textPrimary)
-                BoardWrapText(page.body, size: 17, lineHeight: 1.45, color: PM.Colors.textSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 21)
-            .padding(.top, 501.5) // board 500; +1.5 compensates CoreText vs WebKit baseline
-            .accessibilityElement(children: .combine)
+            .ignoresSafeArea()
         }
         // Board positions are from the frame top, not the safe area.
         .ignoresSafeArea()

@@ -44,6 +44,9 @@ enum Route: Hashable {
     case slope
     case calculators
     case converter
+    case convert(UnitCategory)
+    case shapes
+    case shape(ShapeKind)
     case settings
     case paywall
     case report(projectID: UUID)
@@ -92,7 +95,10 @@ extension Route {
         case .photo: PhotoMeasureView()
         case .slope: SlopeView()
         case .calculators: CalculatorsView()
-        case .converter: UnitConverterView()
+        case .converter: UnitConverterHome()
+        case .convert(let category): UnitConvertView(category: category)
+        case .shapes: ShapesView()
+        case .shape(let kind): ShapeCalculatorView(kind: kind)
         case .settings: SettingsView()
         case .paywall: PaywallView()
         case .report(let id): ReportView(projectID: id)

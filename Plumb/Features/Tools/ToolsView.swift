@@ -66,6 +66,7 @@ private enum ToolsIcons {
     static let compass = "M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0 M15.5 8.5l-2 5-5 2 2-5z"
     static let calc = "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 18h2M14 18h2"
     static let convert = "M4 8h13l-3-3M20 16H7l3 3"
+    static let shapes = PMIconName.shapes.d
 }
 
 /// Icon set from the Responsive board (simplified level, surface and protractor glyphs).
@@ -118,7 +119,8 @@ private enum ToolsCatalogue {
         ]),
         ToolsCategory(name: "CALCULATORS", sub: "Construction Tools", tools: [
             ToolsEntry(name: "Construction", desc: "Area, volume and more", icon: I.calc, route: .calculators),
-            ToolsEntry(name: "Unit Converter", desc: "Length, area, volume", icon: I.convert, route: .converter),
+            ToolsEntry(name: "Unit Converter", desc: "15 unit categories", icon: I.convert, route: .converter),
+            ToolsEntry(name: "Shape Area", desc: "Area and perimeter", icon: I.shapes, route: .shapes),
         ]),
     ]
 
@@ -140,7 +142,8 @@ private enum ToolsCatalogue {
         ToolsEntry(name: "Photo Measure", desc: "Measure on a photo", icon: G.photo, route: .photo, pro: true),
         ToolsEntry(name: "Slope / Grade", desc: "Rise, run, percent", icon: G.slope, route: .slope),
         ToolsEntry(name: "Calculators", desc: "Area, volume and more", icon: G.calc, route: .calculators),
-        ToolsEntry(name: "Unit Converter", desc: "Length, area, volume", icon: G.convert, route: .converter),
+        ToolsEntry(name: "Unit Converter", desc: "15 unit categories", icon: G.convert, route: .converter),
+        ToolsEntry(name: "Shape Area", desc: "Area and perimeter", icon: ToolsIcons.shapes, route: .shapes),
     ]
     static var all: [ToolsEntry] { levelGroup + measureGroup + calcGroup }
 }
@@ -269,7 +272,7 @@ private struct ToolsLibrary: View {
 
             Button { router.push(.paywall) } label: {
                 HStack(spacing: 12) {
-                    Text("Pro also adds Projects, PDF Reports, History and iCloud Sync.")
+                    Text("Pro also adds Projects, PDF Reports and History.")
                         .font(.pm(13))
                         .foregroundStyle(PM.Colors.textSecondary)
                         .multilineTextAlignment(.leading)

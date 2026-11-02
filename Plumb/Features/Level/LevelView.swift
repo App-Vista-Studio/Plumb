@@ -131,9 +131,9 @@ struct LevelView: View {
                     if geo.size.width > geo.size.height {
                         landscape
                     } else if colorScheme == .light {
-                        lightPortrait
+                        lightPortrait(height: geo.size.height, safeBottom: geo.safeAreaInsets.bottom)
                     } else {
-                        portrait
+                        portrait(height: geo.size.height, safeBottom: geo.safeAreaInsets.bottom)
                     }
                 }
             }
@@ -151,56 +151,90 @@ struct LevelView: View {
         }
     }
 
-    private var portrait: some View {
-        ZStack(alignment: .bottom) {
+    /// Live board, laid out for the 844 pt frame. On shorter phones the gaps tighten and the dial scales down
+    /// so the whole column fits above the bottom bar without scrolling.
+    private func portrait(height: CGFloat, safeBottom: CGFloat) -> some View {
+        // Home-button phones have no bottom inset: keep the bar off the screen edge.
+        let barPad: CGFloat = safeBottom > 0 ? 0 : 12
+        // Below the top bar (55) and above the bottom bar (10 gap + 54).
+        let column = height - 55 - 64 - barPad
+        // Badge 26, readout 86 + hint 22, controls 50, cards 46, status row 15.
+        let fixed: CGFloat = 26 + 86 + 22 + 50 + 46 + 15
+        let gaps: CGFloat = 14 + 18 + 18 + 18 + 16 + 10
+        let k: CGFloat = column - fixed - gaps >= 280 ? 1 : 0.55
+        let dial = min(280, max(160, column - fixed - gaps * k))
+
+        return ZStack(alignment: .bottom) {
             PM.Colors.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar
 
-                badgeRow
-                    .frame(height: 26)
-                    .padding(.top, 14)
+                FitOrScroll {
+                    VStack(spacing: 0) {
+                        badgeRow
+                            .frame(height: 26)
+                            .padding(.top, 14 * k)
 
-                LevelInstrument(style: style, offset: bubbleOffset, isPerfect: status == .perfect,
-                                showScaleLabels: !statesLayout && !isEdge)
-                    .padding(.top, 18)
+                        LevelInstrument(style: style, offset: bubbleOffset, isPerfect: status == .perfect,
+                                        showScaleLabels: !statesLayout && !isEdge)
+                            .scaleEffect(dial / 280)
+                            .frame(width: dial, height: dial)
+                            .padding(.top, 18 * k)
 
-                readout.padding(.top, 18)
+                        readout.padding(.top, 18 * k)
 
-                controls.padding(.top, statesLayout ? 14 : 18)
+                        controls.padding(.top, (statesLayout ? 14 : 18) * k)
 
-                axisCards
-                    .padding(.horizontal, 20)
-                    .padding(.top, statesLayout ? 14 : 16)
+                        axisCards
+                            .padding(.horizontal, 20)
+                            .padding(.top, (statesLayout ? 14 : 16) * k)
 
-                if !statesLayout {
-                    statusRow
-                        .padding(.horizontal, 24)
-                        .padding(.top, 10)
+                        if !statesLayout {
+                            statusRow
+                                .padding(.horizontal, 24)
+                                .padding(.top, 10 * k)
+                        }
+
+                        Spacer(minLength: 0)
+                    }
                 }
 
-                Spacer(minLength: 0)
+                bottomBar
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .padding(.bottom, barPad)
             }
 
-            overlays
+            overlays(bottomInset: barPad)
         }
         .overlay { if isLocked { lockedGlow } }
     }
 
     /// LightMode board: larger utility dial, no style switch, status line beside a compact Lock button.
-    private var lightPortrait: some View {
-        ZStack(alignment: .bottom) {
+    /// The dial and gaps shrink on short phones so the Lock row never covers the cards.
+    private func lightPortrait(height: CGFloat, safeBottom: CGFloat) -> some View {
+        let barPad: CGFloat = safeBottom > 0 ? 0 : 12
+        let column = height - (58 - PM.Board.statusBar) - (34 - PM.Board.homeIndicator) - barPad
+        // Top bar 44, badge 26, readout 158 (with locked actions), cards 46, lock row 52.
+        let fixed: CGFloat = 44 + 26 + 158 + 46 + 52
+        let gaps: CGFloat = 18 * 4 + 22
+        let k: CGFloat = column - fixed - gaps >= 290 ? 1 : 0.6
+        let dial = min(290, max(160, column - fixed - gaps * k))
+
+        return ZStack(alignment: .bottom) {
             PM.Colors.background.ignoresSafeArea()
 
-            VStack(spacing: 18) {
+            VStack(spacing: 18 * k) {
                 PMTopBar(title: "Bubble Level", topPadding: 0, horizontalPadding: 0, leading: { BackButton() }) {
                     IconCircleButton(icon: .calibrate, label: "Calibrate") { router.push(.calibration) }
                 }
                 HStack { Spacer(); badgeRow; Spacer() }.frame(height: 26)
 
-                VStack(spacing: 22) {
+                VStack(spacing: 22 * k) {
                     LevelInstrumentLight(offset: bubbleOffset, isPerfect: status == .perfect)
+                        .scaleEffect(dial / 290)
+                        .frame(width: dial, height: dial)
                     lightReadout
                 }
                 .frame(maxHeight: .infinity)
@@ -244,18 +278,18 @@ struct LevelView: View {
             }
             .padding(.top, 58 - PM.Board.statusBar)
             .padding(.horizontal, 20)
-            .padding(.bottom, 34 - PM.Board.homeIndicator)
+            .padding(.bottom, 34 - PM.Board.homeIndicator + barPad)
 
             if showInfo {
                 LevelInfoPanel(stability: motion.isPreview ? 0.98 : motion.stability,
                                calibration: motion.calibratedAt, edge: isEdge)
                     .padding(.horizontal, 12)
-                    .padding(.bottom, 66)
+                    .padding(.bottom, 66 + barPad)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .zIndex(6)
             }
             if let toast {
-                ToastView(text: toast).padding(.bottom, 74).zIndex(7)
+                ToastView(text: toast).padding(.bottom, 74 + barPad).zIndex(7)
             }
         }
         .overlay { if isLocked { lockedGlow } }
@@ -345,22 +379,20 @@ struct LevelView: View {
         }
     }
 
-    @ViewBuilder private var overlays: some View {
+    /// Info panel and toast, floating above the bottom bar.
+    @ViewBuilder private func overlays(bottomInset: CGFloat) -> some View {
         if showInfo {
             LevelInfoPanel(stability: motion.isPreview ? 0.98 : motion.stability,
                            calibration: motion.calibratedAt, edge: isEdge)
                 .padding(.horizontal, 12)
-                .padding(.bottom, 100 - PM.Board.homeIndicator)
+                .padding(.bottom, 100 - PM.Board.homeIndicator + bottomInset)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(6)
         }
 
-        bottomBar
-            .padding(.horizontal, 20)
-
         if let toast {
             ToastView(text: toast)
-                .padding(.bottom, 74)
+                .padding(.bottom, 74 + bottomInset)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                 .zIndex(7)
         }

@@ -518,7 +518,7 @@ private struct EllipseGlow: View {
 
 /// Multi-line text that wraps like the boards' CSS: greedy line breaks (SwiftUI `Text` avoids
 /// one-word last lines, which moves words the board keeps on the first line) and an exact CSS
-/// `line-height` with the leading split above and below each line. Scales with Dynamic Type.
+/// `line-height` with the leading split above and below each line. Scales with Dynamic Type up to Extra Large.
 struct WrapText: UIViewRepresentable {
     var text: String
     var size: CGFloat
@@ -559,7 +559,9 @@ struct WrapText: UIViewRepresentable {
     func updateUIView(_ l: UILabel, context: Context) {
         let base = monospacedDigits ? UIFont.monospacedDigitSystemFont(ofSize: size, weight: weight)
                                     : UIFont.systemFont(ofSize: size, weight: weight)
-        let category = UIContentSizeCategory(context.environment.dynamicTypeSize)
+        // Capped at Extra Large: the rest of the UI uses fixed point sizes (`.pm()`), so letting these labels
+        // grow to accessibility sizes breaks words mid-word inside fixed-size tiles and out-sizes their titles.
+        let category = UIContentSizeCategory(min(context.environment.dynamicTypeSize, .xLarge))
         let font = UIFontMetrics.default.scaledFont(for: base, compatibleWith: UITraitCollection(preferredContentSizeCategory: category))
         let scale = font.pointSize / size
         let p = NSMutableParagraphStyle()
