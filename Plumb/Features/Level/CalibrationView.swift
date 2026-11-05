@@ -170,7 +170,7 @@ struct CalibrationView: View {
 
     private var bottomControls: some View {
         VStack(spacing: 8) {
-            Text("Calibration adjusts the app's reference position. It can't make the sensors more accurate than your iPhone allows.")
+            Text("Calibration adjusts the app's reference position. It can't make the sensors more accurate than your \(Device.name) allows.")
                 .font(.pm(12))
                 .lineSpacing(12 * 0.45 - 2.4)
                 .foregroundStyle(PM.Colors.textSecondary)
@@ -234,10 +234,10 @@ struct CalibrationView: View {
 
     private func copy(for phase: Phase) -> (title: String, body: String) {
         switch phase {
-        case .place: ("Place your iPhone on a stable surface.", "Use a flat table or floor. Take off a thick or uneven case if you can.")
+        case .place: ("Place your \(Device.name) on a stable surface.", "Use a flat table or floor. Take off a thick or uneven case if you can.")
         case .tooSteep: ("This surface is too steep.", "Calibration needs a surface within 5° of level. Try a table or the floor.")
         case .firstRead: ("Keep it still.", "Don’t touch the phone for a few seconds while we read the sensors.")
-        case .turn: ("Now turn it around.", "Rotate your iPhone half a turn on the same spot, so the top points the other way. Then let go.")
+        case .turn: ("Now turn it around.", "Rotate your \(Device.name) half a turn on the same spot, so the top points the other way. Then let go.")
         case .secondRead: ("Keep it still.", "One more reading in this position.")
         case .failed: ("The readings didn’t agree.", "Keep the phone in the same spot for both readings, on a surface that doesn’t move.")
         case .done: ("Calibration complete.", "This surface is now your zero reference. Recalibrate any time from the level screen." + offsetText)

@@ -1105,20 +1105,22 @@ private struct PhotoExportSheet<Snapshot: View>: View {
         case .png:
             guard let image = renderer.uiImage, let data = image.pngData() else { shareURL = nil; return }
             let url = dir.appendingPathComponent("Plumb photo measure.png")
-            do { try data.write(to: url, options: .atomic); shareURL = url } catch { shareURL = nil }
+            shareURL = StorageGuard.write(data, to: url) ? url : nil
         case .pdf:
             let url = dir.appendingPathComponent("Plumb photo measure.pdf")
-            var ok = false
-            renderer.render { size, draw in
-                var box = CGRect(origin: .zero, size: size)
-                guard let ctx = CGContext(url as CFURL, mediaBox: &box, nil) else { return }
-                ctx.beginPDFPage(nil)
-                draw(ctx)
-                ctx.endPDFPage()
-                ctx.closePDF()
-                ok = true
+            shareURL = StorageGuard.retrying { () -> URL? in
+                var ok = false
+                renderer.render { size, draw in
+                    var box = CGRect(origin: .zero, size: size)
+                    guard let ctx = CGContext(url as CFURL, mediaBox: &box, nil) else { return }
+                    ctx.beginPDFPage(nil)
+                    draw(ctx)
+                    ctx.endPDFPage()
+                    ctx.closePDF()
+                    ok = true
+                }
+                return ok ? url : nil
             }
-            shareURL = ok ? url : nil
         }
     }
 }

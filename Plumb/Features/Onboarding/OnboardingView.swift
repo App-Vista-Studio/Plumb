@@ -18,9 +18,9 @@ struct OnboardingView: View {
     @State private var controlsHeight: CGFloat = 78
 
     private let pages: [OnboardingPage] = [
-        .init(title: "Measure Anything.", body: "A live level, angle finder, ruler and compass, driven by your iPhone’s real sensors.", art: .level),
+        .init(title: "Measure Anything.", body: "A live level, angle finder, ruler and compass, driven by your \(Device.name)’s real sensors.", art: .level),
         .init(title: "Know Your Angle.", body: "Absolute or relative angles, shown only as precisely as your phone can measure.", art: .angle),
-        .init(title: "Measure Your Space.", body: "Point-to-point distances and room outlines with AR, where your iPhone supports it.", art: .space),
+        .init(title: "Measure Your Space.", body: "Point-to-point distances and room outlines with AR, where your \(Device.name) supports it.", art: .space),
         .init(title: "Your Tools. One App.", body: "Save measurements to projects and share clean PDF reports.", art: .tools),
     ]
 

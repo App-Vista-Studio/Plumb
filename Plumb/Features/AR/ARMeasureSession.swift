@@ -296,7 +296,7 @@ final class ARMeasureSession: NSObject, ARSessionDelegate, ARSCNViewDelegate {
             switch reason {
             case .initializing:
                 tracking = .starting
-                coaching = "Move your iPhone slowly"
+                coaching = "Move your \(Device.name) slowly"
             case .excessiveMotion:
                 tracking = .limited
                 coaching = "Slow down"
@@ -308,7 +308,7 @@ final class ARMeasureSession: NSObject, ARSessionDelegate, ARSCNViewDelegate {
                 coaching = "Hold still while AR recovers"
             @unknown default:
                 tracking = .limited
-                coaching = "Move your iPhone slowly"
+                coaching = "Move your \(Device.name) slowly"
             }
         }
     }

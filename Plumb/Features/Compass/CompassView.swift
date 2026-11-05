@@ -82,7 +82,7 @@ struct CompassView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 14)
                 } else {
-                    Text("Hold your iPhone flat. Keep away from magnets, speakers and metal for a reliable heading.")
+                    Text("Hold your \(Device.name) flat. Keep away from magnets, speakers and metal for a reliable heading.")
                         .font(.pm(light ? 14 : 13))
                         .lineSpacing(light ? 3.6 : 3.4)
                         .foregroundStyle(PM.Colors.textSecondary)
@@ -430,7 +430,7 @@ private struct CompassInterferenceCard: View {
                     .foregroundStyle(Self.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Improve compass accuracy: move away from metal and wave your iPhone in a figure-eight. Headings near magnetic interference aren't reliable.")
+                Text("Improve compass accuracy: move away from metal and wave your \(Device.name) in a figure-eight. Headings near magnetic interference aren't reliable.")
                     .font(.pm(13))
                     .lineSpacing(3.8)
                     .foregroundStyle(Self.bodyText)

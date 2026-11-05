@@ -773,7 +773,7 @@ private struct CalcNumber {
     var normalised: String
 
     /// Longest input kept in a field. Nine integer digits is far beyond any building measurement.
-    static let maxLength = 12
+    nonisolated static let maxLength = 12
 
     init(_ raw: String) {
         var t = raw.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
@@ -793,7 +793,7 @@ private struct CalcNumber {
     }
 
     /// Trims pasted text to characters a number can contain and caps its length.
-    static func limit(_ raw: String) -> String {
+    nonisolated static func limit(_ raw: String) -> String {
         let allowed = Set("0123456789.,-\u{2212} ")
         return String(raw.filter { allowed.contains($0) }.prefix(maxLength))
     }

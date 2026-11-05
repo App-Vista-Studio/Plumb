@@ -101,7 +101,7 @@ struct ReportView: View {
                     }
                     Button("OK", role: .cancel) {}
                 } message: {
-                    Text("Your iPhone may be low on storage. Free up some space and try again.")
+                    Text("Your \(Device.name) may be low on storage. Free up some space and try again.")
                 }
             } else {
                 Spacer()
@@ -571,6 +571,10 @@ private struct ReportAnnotation: View {
 enum ReportRenderer {
     /// Renders every page to an A4 PDF (vector text) in the temporary directory.
     static func render(_ content: ReportContent) -> URL? {
+        StorageGuard.retrying { renderOnce(content) }
+    }
+
+    private static func renderOnce(_ content: ReportContent) -> URL? {
         let pages = ReportLayout.pages(for: content)
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: " -_"))
         var safeName = String(content.projectName.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" })

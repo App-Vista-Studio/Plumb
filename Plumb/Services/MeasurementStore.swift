@@ -66,6 +66,9 @@ final class MeasurementStore {
     /// Set when the saved file could not be read and was moved aside on this launch.
     private(set) var recoveredFromCorruptFile = false
 
+    /// True when the last write failed (for example the disk is full even after clearing caches).
+    private(set) var saveFailed = false
+
     @ObservationIgnored private var persists = true
     @ObservationIgnored private var savePending = false
     @ObservationIgnored private let fileURL: URL
@@ -245,7 +248,10 @@ final class MeasurementStore {
         guard let data = try? encoder.encode(Snapshot(projects: projects, measurements: measurements)) else { return }
         let dir = fileURL.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try? data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        // A full disk clears caches and retries once (StorageGuard). On failure the in-memory data is
+        // kept and the next change, or the app moving to the background, tries again.
+        saveFailed = !StorageGuard.write(data, to: fileURL,
+                                         options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
     // MARK: Sample data (debug design review only)

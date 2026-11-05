@@ -43,7 +43,7 @@ struct ProtractorView: View {
                     if locked {
                         StatusPill(state: .aligned, text: "LOCKED", height: 26)
                     } else if isFlat {
-                        LivePill(text: "Hold iPhone upright to measure", dot: PM.Colors.warning)
+                        LivePill(text: "Hold \(Device.name) upright to measure", dot: PM.Colors.warning)
                     } else {
                         LivePill(text: measuring ? "Measuring from baseline · Device motion" : "Paused · Tap Measure to resume",
                                  dot: measuring ? PM.Colors.measuring : PM.Colors.neutral)

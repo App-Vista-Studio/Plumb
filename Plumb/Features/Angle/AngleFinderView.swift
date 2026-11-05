@@ -76,10 +76,10 @@ struct AngleFinderView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
                 } else {
-                    LivePill(text: isFlat ? "Stand iPhone on its long edge" : "Sensor · Device motion · from horizontal",
+                    LivePill(text: isFlat ? "Stand \(Device.name) on its long edge" : "Sensor · Device motion · from horizontal",
                              dot: isFlat ? PM.Colors.warning : PM.Colors.measuring)
                         .padding(.top, 16)
-                    Text("Rest the long edge of your iPhone on the surface you want to measure.")
+                    Text("Rest the long edge of your \(Device.name) on the surface you want to measure.")
                         .font(.pm(light ? 14 : 13))
                         .lineSpacing((light ? 14 : 13) * 0.45 - 2.3)
                         .foregroundStyle(PM.Colors.textSecondary)

@@ -416,7 +416,7 @@ struct ARMeasureView: View {
         } else if step == .scanning {
             ARHintPill {
                 PMIcon(.phoneSides, size: 18, stroke: 1.8)
-                Text("Move your iPhone slowly")
+                Text("Move your \(Device.name) slowly")
             }
             .padding(.top, 56)
             .transition(.opacity)

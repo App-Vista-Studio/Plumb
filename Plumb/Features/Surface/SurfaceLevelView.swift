@@ -70,7 +70,7 @@ struct SurfaceLevelView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 10 * plane.gapScale)
 
-                            Text(mode == .horizontal ? "Lay your iPhone flat on the surface." : "Hold the long edge of your iPhone against the wall.")
+                            Text(mode == .horizontal ? "Lay your \(Device.name) flat on the surface." : "Hold the long edge of your \(Device.name) against the wall.")
                                 .font(.pm(13))
                                 .foregroundStyle(PM.Colors.textSecondary)
                                 .multilineTextAlignment(.center)

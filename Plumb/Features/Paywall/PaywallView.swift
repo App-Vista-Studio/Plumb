@@ -224,12 +224,12 @@ enum PaywallMessage: Hashable {
 
     var body: String {
         switch self {
-        case .purchased: "Every tool is unlocked on this iPhone."
-        case .restored: "Pro is active again on this iPhone."
+        case .purchased: "Every tool is unlocked on this \(Device.name)."
+        case .restored: "Pro is active again on this \(Device.name)."
         case .nothingToRestore: "No Pro purchase was found for this Apple Account."
         case .pending: "Your purchase is waiting for approval. Pro unlocks as soon as it\u{2019}s approved."
         case .unavailable: "The App Store isn\u{2019}t available right now. Check your connection and try again."
-        case .privacy: "Measurements, photos and reports stay on this iPhone unless you share them. Plumb has no account, no analytics and no ads."
+        case .privacy: "Measurements, photos and reports stay on this \(Device.name) unless you share them. Plumb has no account, no analytics and no ads."
         case .failed(let why): why
         }
     }

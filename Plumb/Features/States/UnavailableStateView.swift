@@ -117,7 +117,7 @@ struct UnavailableStateView: View {
             Button("Show heading anyway") { go(.compass) }
             Button("Keep calibrating", role: .cancel) {}
         } message: {
-            Text("The compass still reports interference. Keep moving your iPhone in a slow figure-eight away from metal.")
+            Text("The compass still reports interference. Keep moving your \(Device.name) in a slow figure-eight away from metal.")
         }
     }
 
@@ -270,14 +270,14 @@ private struct UnavailableContent {
             chipIcon = Self.lock
             chipIconColor = PM.Colors.textSecondary
             heading = "Camera access is required for this measurement."
-            body = "The camera stays on your iPhone. Nothing is recorded or uploaded unless you save a photo."
+            body = "The camera stays on your \(Device.name). Nothing is recorded or uploaded unless you save a photo."
             primary = "Open Settings"
             secondary = "Measure a photo from your library"
         case .arUnsupported, .arTrackingLimited:
             title = "AR Measure"
             chip = "NOT SUPPORTED"
             heading = "AR Measure isn't available on this device."
-            body = "It needs an iPhone with ARKit world tracking. You can still measure from a photo using something of known size, like an A4 sheet."
+            body = "It needs an \(Device.name) with ARKit world tracking. You can still measure from a photo using something of known size, like an A4 sheet."
             primary = "Use Photo Measure"
             secondary = "See all tools"
         case .compassInterference:
@@ -288,7 +288,7 @@ private struct UnavailableContent {
             chipText = PM.Colors.warning
             chipFill = PM.Colors.warningFill
             heading = "Compass accuracy is currently reduced."
-            body = "Move your iPhone in a slow figure-eight a few times. Keep away from metal, magnets, cars and speakers. Readings aren't reliable near magnetic interference."
+            body = "Move your \(Device.name) in a slow figure-eight a few times. Keep away from metal, magnets, cars and speakers. Readings aren't reliable near magnetic interference."
             primary = "I've moved away, check again"
             secondary = "Show heading anyway"
         }
@@ -396,7 +396,7 @@ private struct TrackingLimitedState: View {
 
                 VStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
-                        WrapText("Move your iPhone slowly and give the camera more visual detail.",
+                        WrapText("Move your \(Device.name) slowly and give the camera more visual detail.",
                                  size: 18, weight: .bold, lineHeight: 1.3, color: text)
                         WrapText("Plain walls and dim light are hard to track. Point at an edge, a textured floor or a well-lit object. Measuring is paused until tracking improves.",
                                  size: 14, lineHeight: 1.45, color: secondary)

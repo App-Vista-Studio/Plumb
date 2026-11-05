@@ -180,7 +180,7 @@ struct RulerView: View {
                 .font(.pm(13, .bold))
                 .foregroundStyle(PM.Colors.textPrimary)
                 Text(scale.isTrusted
-                     ? "Accurate on supported iPhone models with the correct screen size set. For larger objects use AR Measure."
+                     ? "Accurate on supported iPhone and iPad models with the correct screen size set. For larger objects use AR Measure."
                      : "This model isn't in Plumb's screen table. Calibrate with a bank card for an accurate ruler.")
                     .font(.pm(12))
                     .lineSpacing(12 * 0.45 - 2.3)
@@ -512,7 +512,8 @@ struct RulerScreenScale {
 
     /// The scale from the model table, if this device is in it.
     static var modelScale: RulerScreenScale? {
-        guard let (name, ppi) = table[modelIdentifier] else { return nil }
+        let id = modelIdentifier
+        guard let (name, ppi) = table[id] ?? iPadScale(id) else { return nil }
         let native = currentNativeScale
         guard native > 0 else { return nil }
         return RulerScreenScale(modelName: name, pointsPerMM: CGFloat(ppi) / native / 25.4, isTrusted: true)
@@ -544,6 +545,14 @@ struct RulerScreenScale {
         return withUnsafeBytes(of: &info.machine) { raw in
             String(decoding: raw.prefix { $0 != 0 }, as: UTF8.self)
         }
+    }
+
+    /// iPads: Apple publishes 326 ppi for iPad mini and 264 ppi for every other current iPad
+    /// (iPad, iPad Air, iPad Pro 11" and 13"). Matched by identifier so new models are covered.
+    private static func iPadScale(_ id: String) -> (String, Int)? {
+        guard id.hasPrefix("iPad") else { return nil }
+        let miniIDs: Set<String> = ["iPad11,1", "iPad11,2", "iPad14,1", "iPad14,2", "iPad16,1", "iPad16,2"]
+        return miniIDs.contains(id) ? ("iPad mini", 326) : ("iPad", 264)
     }
 
     /// Model identifier → (marketing name, pixels per inch). iPhone models that run iOS 26.
