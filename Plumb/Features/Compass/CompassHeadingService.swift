@@ -16,7 +16,7 @@ final class CompassHeadingService: NSObject, CLLocationManagerDelegate {
     enum LocationAccess { case notDetermined, denied, granted }
 
     /// Degrees clockwise from north, 0..<360.
-    private(set) var magneticHeading: Double = 42
+    private(set) var magneticHeading: Double = 0
     /// Negative when unavailable (no location fix yet).
     private(set) var trueHeading: Double = -1
     /// ± degrees; negative means invalid.

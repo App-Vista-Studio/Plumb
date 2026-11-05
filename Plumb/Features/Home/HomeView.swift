@@ -12,6 +12,7 @@ struct HomeView: View {
     @Environment(MeasurementStore.self) private var store
     @Environment(AppSettings.self) private var settings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var motion = MotionService.shared
     @State private var zoom = HomeZoomCoordinator.shared
@@ -531,12 +532,19 @@ struct HomeView: View {
         let count = store.measurements(in: p).count
         return Button { router.push(.project(projectID: p.id)) } label: {
             VStack(alignment: .leading, spacing: 10) {
-                GeometryReader { geo in
-                    KitchenScene()
-                        .frame(width: geo.size.width * 1.2, height: 122)
-                        .offset(x: -geo.size.width * 0.1, y: -22)
+                Group {
+                    if sizeClass == .regular {
+                        // iPad: a taller window onto the scene, scaled uniformly (never stretched).
+                        KitchenScene().frame(height: 170)
+                    } else {
+                        GeometryReader { geo in
+                            KitchenScene()
+                                .frame(width: geo.size.width * 1.2, height: 122)
+                                .offset(x: -geo.size.width * 0.1, y: -22)
+                        }
+                        .frame(height: 84)
+                    }
                 }
-                .frame(height: 84)
                 .background(Color(hex: 0x1E262B))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .accessibilityHidden(true)

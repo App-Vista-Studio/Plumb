@@ -115,11 +115,64 @@ struct CameraVignette: View {
     }
 }
 
+
+// MARK: - iPad: never stretch a scene
+
+/// On iPad (regular width) the scenes are laid out for much wider frames than the ~390 pt phone they were drawn
+/// for. This draws the scene at its design size and scales it uniformly to cover the frame, cropping the
+/// overflow, so proportions are kept. On iPhone it is a pass-through, so phone layouts are unchanged.
+struct AdaptiveScene<Content: View>: View {
+    var designWidth: CGFloat
+    var designHeight: CGFloat
+    @ViewBuilder var content: () -> Content
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    var body: some View {
+        if sizeClass == .regular {
+            GeometryReader { g in
+                let k = max(g.size.width / designWidth, g.size.height / designHeight)
+                content()
+                    .frame(width: designWidth, height: designHeight)
+                    .scaleEffect(k)
+                    .position(x: g.size.width / 2, y: g.size.height / 2)
+                    .frame(width: g.size.width, height: g.size.height)
+                    .clipped()
+            }
+        } else {
+            content()
+        }
+    }
+}
+
+struct KitchenScene: View {
+    var body: some View { AdaptiveScene(designWidth: 390, designHeight: 600) { KitchenSceneArt() } }
+}
+
+struct KitchenFloorScene: View {
+    var body: some View { AdaptiveScene(designWidth: 390, designHeight: 284) { KitchenFloorSceneArt() } }
+}
+
+struct BenchScene: View {
+    var body: some View { AdaptiveScene(designWidth: 325, designHeight: 200) { BenchSceneArt() } }
+}
+
+struct HallwayScene: View {
+    var body: some View { AdaptiveScene(designWidth: 390, designHeight: 370) { HallwaySceneArt() } }
+}
+
+struct WallScene: View {
+    var body: some View { AdaptiveScene(designWidth: 195, designHeight: 422) { WallSceneArt() } }
+}
+
+struct BathroomScene: View {
+    var body: some View { AdaptiveScene(designWidth: 72, designHeight: 72) { BathroomSceneArt() } }
+}
+
 // MARK: - Kitchen
 
 /// Kitchen, wide view: upper cabinets, splashback tiles, benchtop items, benchtop and lower cabinets.
 /// Callers crop it the way each board does (e.g. Home: x −10%, y −22, 120% wide, 122 tall).
-struct KitchenScene: View {
+struct KitchenSceneArt: View {
     var body: some View {
         GeometryReader { g in
             let w = g.size.width, h = g.size.height
@@ -379,7 +432,7 @@ private struct PerspectiveSeams: View {
 }
 
 /// Tiled kitchen floor seen from standing height (AR, Room, Report). Vanishing point sits 1.1 × height above.
-struct KitchenFloorScene: View {
+struct KitchenFloorSceneArt: View {
     private static let seams: [CGFloat] = [0.3102, 0.4736, 0.5743, 0.6430, 0.6923, 0.7296, 0.7592,
                                            0.7827, 0.8021, 0.8183, 0.8320, 0.8437, 0.8539, 0.8630]
 
@@ -408,7 +461,7 @@ struct KitchenFloorScene: View {
 
 /// Close-up of the benchtop (Report, second photo): the kitchen cropped at (−100, −116, 520 × 286)
 /// in a 325 × 200 frame, with the floor strip from y 170.
-struct BenchScene: View {
+struct BenchSceneArt: View {
     var body: some View {
         GeometryReader { g in
             let sx = g.size.width / 325, sy = g.size.height / 200
@@ -428,7 +481,7 @@ struct BenchScene: View {
 // MARK: - Hallway
 
 /// Hallway with a door, a framed picture and a timber floor (Photo Measure). Drawn on a 390 × 370 frame.
-struct HallwayScene: View {
+struct HallwaySceneArt: View {
     var body: some View {
         GeometryReader { g in
             let sx = g.size.width / 390, sy = g.size.height / 370
@@ -550,7 +603,7 @@ private struct HallwayDoorPanel: View {
 
 /// Plain painted wall with a light switch (States). Drawn on a 390 × 844 frame.
 /// The States board dims it with `.sceneFilter(brightness: 0.72, saturate: 0.7)`.
-struct WallScene: View {
+struct WallSceneArt: View {
     var body: some View {
         GeometryReader { g in
             let sx = g.size.width / 390, sy = g.size.height / 844
@@ -599,7 +652,7 @@ struct WallScene: View {
 // MARK: - Bathroom
 
 /// Bathroom tiles with a basin and tap (Projects thumbnail, drawn at 72 × 72).
-struct BathroomScene: View {
+struct BathroomSceneArt: View {
     var body: some View {
         GeometryReader { g in
             let w = g.size.width, h = g.size.height

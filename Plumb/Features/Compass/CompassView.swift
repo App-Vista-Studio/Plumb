@@ -144,13 +144,15 @@ struct CompassView: View {
     }
 
     private var liveHeading: Double {
-        guard service.isAvailable else { return fixturePoor ? 118 : 42 } // board values for debug captures
+        // Without a heading sensor there is no real reading: show north (0°) rather than an invented one.
+        // The board values (42° / 118°) are used only by the debug screenshot launch flags.
+        guard service.isAvailable else { return DebugLaunch.isActive ? (fixturePoor ? 118 : 42) : 0 }
         if usingTrueNorth { return service.trueHeading }
         return service.magneticHeading
     }
 
     private var accuracyValue: Double {
-        guard service.isAvailable else { return fixturePoor ? 25 : 5 }
+        guard service.isAvailable else { return DebugLaunch.isActive ? (fixturePoor ? 25 : 5) : -1 }
         return service.hasReading ? service.accuracy : -1
     }
 

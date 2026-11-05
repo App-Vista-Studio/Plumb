@@ -60,6 +60,22 @@ struct RootView: View {
     }
 }
 
+/// Keeps the phone-sized layouts (and the hand-drawn scenes, which are drawn for ~390 pt) at a phone-like
+/// width on iPad and other wide windows, centred, instead of stretching them across the screen.
+struct PhoneColumn<Content: View>: View {
+    static var maxWidth: CGFloat { 600 }
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        GeometryReader { geo in
+            content()
+                .frame(width: min(geo.size.width, Self.maxWidth), height: geo.size.height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(PM.Colors.background.ignoresSafeArea())
+    }
+}
+
 /// Custom tab bar from the Home board: 88 tall including the home indicator,
 /// padding 10 / 12 / 26, 92% background, 1 pt top rule. Selected item accent + 700, others secondary + 600.
 struct PMTabBar: View {
