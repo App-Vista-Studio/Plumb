@@ -90,13 +90,13 @@ struct OnboardingView: View {
         .environment(\.colorScheme, .dark)
         .animation(PM.Motion.normal, value: page)
         // Auto-advance: every few seconds, with a slow ease between pages. Any swipe or tap changes `page`,
-        // which restarts this task, so the timer never fights the user. Stops on the last page; off with
-        // Reduce Motion and for debug screenshots.
+        // which restarts this task, so the timer never fights the user. Stops on the last page and in debug
+        // screenshot launches. With Reduce Motion the page still advances, but with a short fade-length ease.
         .task(id: page) {
-            guard !reduceMotion, !DebugLaunch.isActive, page < pages.count - 1 else { return }
+            guard !DebugLaunch.isActive, page < pages.count - 1 else { return }
             try? await Task.sleep(for: .seconds(4.5))
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.7)) { page += 1 }
+            withAnimation(.easeInOut(duration: reduceMotion ? 0.2 : 0.7)) { page += 1 }
         }
     }
 
