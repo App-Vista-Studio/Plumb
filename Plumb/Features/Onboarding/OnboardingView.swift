@@ -16,10 +16,12 @@ struct OnboardingView: View {
     @State private var page = min(3, max(0, Int(DebugLaunch.state ?? "") ?? 0))
     /// Height of the bottom controls (dots, button, and the last page's note); pages end above them.
     @State private var controlsHeight: CGFloat = 78
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let pages: [OnboardingPage] = [
         .init(title: "Measure Anything.", body: "A live level, angle finder, ruler and compass, driven by your \(Device.name)’s real sensors.", art: .level),
-        .init(title: "Know Your Angle.", body: "Absolute or relative angles, shown only as precisely as your phone can measure.", art: .angle),
+        .init(title: "Know Your Angle.", body: "Absolute or relative angles, shown only as precisely as your \(Device.name) can measure.", art: .angle),
         .init(title: "Measure Your Space.", body: "Point-to-point distances and room outlines with AR, where your \(Device.name) supports it.", art: .space),
         .init(title: "Your Tools. One App.", body: "Save measurements to projects and share clean PDF reports.", art: .tools),
     ]
@@ -60,8 +62,9 @@ struct OnboardingView: View {
 
             controls
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { controlsHeight = $0 }
+                .frame(maxWidth: sizeClass == .regular ? 520 : .infinity)
                 .padding(.horizontal, 21) // board: 20 inside the 1 pt phone border
-                .padding(.bottom, Self.controlsBottom)
+                .padding(.bottom, sizeClass == .regular ? 56 : Self.controlsBottom)
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .ignoresSafeArea()
         }
@@ -70,12 +73,13 @@ struct OnboardingView: View {
         // size never widens the layout.
         .background {
             PM.Colors.background
-                .overlay(alignment: .topLeading) {
+                .overlay(alignment: sizeClass == .regular ? .center : .topLeading) {
                     Circle()
                         .fill(RadialGradient(colors: [PM.Colors.accent.opacity(0.09), PM.Colors.accent.opacity(0)],
                                              center: .center, startRadius: 0, endRadius: 255))
                         .frame(width: 510, height: 510)
-                        .offset(x: -60, y: 90)
+                        .offset(x: sizeClass == .regular ? 0 : -60, y: sizeClass == .regular ? -60 : 90)
+                        .scaleEffect(sizeClass == .regular ? 1.8 : 1)
                 }
                 .clipped()
                 .ignoresSafeArea()
@@ -85,13 +89,28 @@ struct OnboardingView: View {
         .preferredColorScheme(.dark)
         .environment(\.colorScheme, .dark)
         .animation(PM.Motion.normal, value: page)
+        // Auto-advance: every few seconds, with a slow ease between pages. Any swipe or tap changes `page`,
+        // which restarts this task, so the timer never fights the user. Stops on the last page; off with
+        // Reduce Motion and for debug screenshots.
+        .task(id: page) {
+            guard !reduceMotion, !DebugLaunch.isActive, page < pages.count - 1 else { return }
+            try? await Task.sleep(for: .seconds(4.5))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.7)) { page += 1 }
+        }
     }
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: sizeClass == .regular ? .center : .leading, spacing: 18) {
             if isLast {
-                BoardWrapText("We'll ask for camera or location only when a tool needs it.", size: 13, tracking: -0.05, lineHeight: 1.4,
-                              color: PM.Colors.textSecondary)
+                if sizeClass == .regular {
+                    Text("We'll ask for camera or location only when a tool needs it.")
+                        .font(.pm(15)).foregroundStyle(PM.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                } else {
+                    BoardWrapText("We'll ask for camera or location only when a tool needs it.", size: 13, tracking: -0.05, lineHeight: 1.4,
+                                  color: PM.Colors.textSecondary)
+                }
             }
             HStack(spacing: 6) {
                 ForEach(pages.indices, id: \.self) { j in
@@ -100,6 +119,7 @@ struct OnboardingView: View {
                         .frame(width: j == page ? 22 : 6, height: 6)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: sizeClass == .regular ? .center : .leading)
             .accessibilityElement()
             .accessibilityLabel("Step \(page + 1) of \(pages.count)")
 
@@ -136,11 +156,62 @@ private struct OnboardingPageView: View {
     var bottomInset: CGFloat
 
     @State private var textHeight: CGFloat = 130
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// Board: art 300 pt square at y 150, text at y 500 (+1.5 baseline compensation).
     private static let art: CGFloat = 300
 
+    @ViewBuilder private var artView: some View {
+        switch page.art {
+        case .level: OnboardingLevelArt()
+        case .angle: OnboardingAngleArt()
+        case .space: OnboardingSpaceArt()
+        case .tools: OnboardingToolsArt()
+        }
+    }
+
+    /// iPad and other wide windows: everything centred as one column, art scaled up to use the height,
+    /// text centred under it with a comfortable line length. Phone layout below is untouched.
+    private var wideBody: some View {
+        GeometryReader { g in
+            let available = g.size.height - bottomInset - 120 - 150
+            let k = min(2.2, max(0.8, available / Self.art))
+            VStack(spacing: 0) {
+                Spacer(minLength: 100)
+                artView
+                    .frame(width: Self.art, height: Self.art, alignment: .topLeading)
+                    .scaleEffect(k, anchor: .topLeading)
+                    .frame(width: Self.art * k, height: Self.art * k, alignment: .topLeading)
+                    .accessibilityHidden(true)
+                VStack(spacing: 16) {
+                    Text(page.title)
+                        .font(.pm(52, .bold)).tracking(-1.2)
+                        .foregroundStyle(PM.Colors.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(page.body)
+                        .font(.pm(23))
+                        .lineSpacing(5)
+                        .foregroundStyle(PM.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: 620)
+                .padding(.horizontal, 32)
+                .padding(.top, 36)
+                .accessibilityElement(children: .combine)
+                Spacer(minLength: bottomInset + 24)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .ignoresSafeArea()
+    }
+
     var body: some View {
+        if sizeClass == .regular { wideBody } else { phoneBody }
+    }
+
+    private var phoneBody: some View {
         GeometryReader { g in
             let h = g.size.height
             // 0 on the shortest phones (667 pt, iPhone SE), 1 from the 844 pt board up.
